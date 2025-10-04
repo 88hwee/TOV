@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Treaty of Versailles: Throw the Teacher to the Sharks!</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: linear-gradient(180deg,#e0f7ff,#b3e5fc 50%, #80deea); color: #0a3344; margin: 0; }
+    header { background: #01579b; color: white; text-align: center; padding: 20px; }
+    .wrap { max-width: 900px; margin: auto; padding: 20px; }
+    .qbox, .options, .feedback, .controls { margin: 20px 0; }
+    .btn { padding: 10px 15px; border-radius: 10px; border: 2px solid #01579b; background: white; cursor: pointer; }
+    .btn:hover { background: #e1f5fe; }
+    .lifeline.used { opacity: 0.5; cursor: not-allowed; }
+    .ocean { background: linear-gradient(#b3e5fc,#4dd0e1); height: 200px; position: relative; overflow: hidden; }
+    .teacher { position: absolute; top: -120px; left: 50%; transform: translateX(-50%); background: #ef6c00; width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+    .timer { font-weight: bold; color: #d32f2f; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Treaty of Versailles: Throw the Teacher to the Sharks!</h1>
+    <p>10 MCQs · 3 Lifelines · Finish to unlock the Shark Button 🦈</p>
+  </header>
+
+  <div class="wrap">
+    <div id="game">
+      <p>Question <span id="qIndex">1</span>/10 — <span id="difficulty">Easy</span></p>
+      <p>Score: <span id="score">0</span> | Time left: <span class="timer" id="timer">10</span>s</p>
+
+      <div class="qbox">
+        <h2 id="question">Loading...</h2>
+        <div id="options"></div>
+      </div>
+
+      <div class="feedback" id="feedback"></div>
+
+      <div class="controls">
+        <button id="next" class="btn">Next</button>
+      </div>
+
+      <div class="lifelines">
+        <button id="ll5050" class="btn">50–50</button>
+        <button id="llEinstein" class="btn">Ask Einstein 🧠</button>
+        <button id="llBait" class="btn">Shark Bait 🎣</button>
+      </div>
+
+      <div class="ocean">
+        <div class="teacher" id="teacher">TEACHER</div>
+      </div>
+    </div>
+
+    <div id="end" style="display:none; text-align:center;">
+      <h2 id="endTitle"></h2>
+      <p id="endText"></p>
+      <button id="throwBtn" class="btn" style="display:none">Throw the Teacher to the Sharks 🦈</button>
+      <button class="btn" onclick="restart()">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const QUESTIONS = [
+      { q: "Which clause blamed Germany for WWI?", options: ["Article 10","Article 231","Article 50","Article 200"], answer: 1, diff: 'Easy' },
+      { q: "How many men were allowed in the German army?", options: ["100,000","1,000,000","250,000","Unlimited"], answer: 0, diff: 'Easy' },
+      { q: "Which land returned to France?", options: ["Alsace-Lorraine","Sudetenland","Poland","Danzig"], answer: 0, diff: 'Easy' },
+      { q: "What happened to the Rhineland?", options: ["Demilitarised","Annexed","Independent","Given to France"], answer: 0, diff: 'Harder' },
+      { q: "Who ran the Saar coal mines?", options: ["France","Poland","Britain","Belgium"], answer: 0, diff: 'Harder' },
+      { q: "Danzig became a…", options: ["Free City","French colony","German port","Polish city"], answer: 0, diff: 'Harder' },
+      { q: "Which union was banned?", options: ["Germany & Austria","France & Belgium","Britain & Ireland","Poland & Czechoslovakia"], answer: 0, diff: 'Harder' },
+      { q: "Upper Silesia’s fate decided by…", options: ["Plebiscite","Treaty","League decree","War"], answer: 0, diff: 'Difficult' },
+      { q: "How much reparations?", options: ["132 billion gold marks","50 billion","10 billion","100 billion"], answer: 0, diff: 'Difficult' },
+      { q: "Military restriction?", options: ["No submarines or air force","Limit of 100,000","No tanks","All of these"], answer: 3, diff: 'Difficult' }
+    ];
+
+    let idx=0, score=0, timerInt, timeLeft=10;
+
+    const qIndex=document.getElementById('qIndex');
+    const question=document.getElementById('question');
+    const options=document.getElementById('options');
+    const scoreBox=document.getElementById('score');
+    const diff=document.getElementById('difficulty');
+    const feedback=document.getElementById('feedback');
+    const nextBtn=document.getElementById('next');
+    const timerBox=document.getElementById('timer');
+    const teacher=document.getElementById('teacher');
+    const end=document.getElementById('end');
+    const game=document.getElementById('game');
+    const endTitle=document.getElementById('endTitle');
+    const endText=document.getElementById('endText');
+    const throwBtn=document.getElementById('throwBtn');
+
+    function render(){
+      const q=QUESTIONS[idx];
+      qIndex.textContent=idx+1;
+      diff.textContent=q.diff;
+      question.textContent=q.q;
+      feedback.textContent='';
+      options.innerHTML='';
+      q.options.forEach((opt,i)=>{
+        const btn=document.createElement('button');
+        btn.textContent=opt;
+        btn.className='btn';
+        btn.onclick=()=>choose(i);
+        options.appendChild(btn);
+      });
+      resetTimer();
+    }
+
+    function resetTimer(){
+      clearInterval(timerInt);
+      timeLeft=10;
+      timerBox.textContent=timeLeft;
+      timerInt=setInterval(()=>{
+        timeLeft--;
+        timerBox.textContent=timeLeft;
+        if(timeLeft<=0){
+          clearInterval(timerInt);
+          feedback.textContent='Time up!';
+          [...options.children].forEach(b=>b.disabled=true);
+          autoNext();
+        }
+      },1000);
+    }
+
+    function choose(i){
+      clearInterval(timerInt);
+      const q=QUESTIONS[idx];
+      const correct=i===q.answer;
+      if(correct){score++;feedback.textContent='Correct!';}
+      else{feedback.textContent='Wrong!';}
+      scoreBox.textContent=score;
+      [...options.children].forEach((b,j)=>{
+        b.disabled=true;
+        if(j===q.answer)b.style.background='#c8e6c9';
+        else if(j===i)b.style.background='#ffcdd2';
+      });
+      setTimeout(()=>nextQuestion(),1000);
+    }
+
+    nextBtn.onclick=()=>nextQuestion();
+
+    function autoNext(){
+      setTimeout(()=>nextQuestion(),1000);
+    }
+
+    function nextQuestion(){
+      if(idx<QUESTIONS.length-1){
+        idx++;
+        render();
+      } else {
+        endGame();
+      }
+    }
+
+    function endGame(){
+      clearInterval(timerInt);
+      game.style.display='none';
+      end.style.display='block';
+      endTitle.textContent='Game Complete!';
+      endText.textContent=`Score: ${score}/10`;
+      throwBtn.style.display='inline-block';
+    }
+
+    function restart(){idx=0;score=0;game.style.display='block';end.style.display='none';render();}
+
+    throwBtn.onclick=()=>{
+      teacher.style.transition='top 1s ease';
+      teacher.style.top='150px';
+      setTimeout(()=>teacher.style.top='-120px',1500);
+    };
+
+    render();
+  </script>
+</body>
+</html>
